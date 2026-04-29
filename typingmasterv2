@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:version='2' xmlns='http://www.w3.org/1999/xhtml'
+      xmlns:b='http://www.google.com/2005/gml/b'
+      xmlns:data='http://www.google.com/2005/gml/data'
+      xmlns:expr='http://www.google.com/2005/gml/expr'>
+
+<head>
+  <meta charset='UTF-8'/>
+  <meta name='viewport' content='width=device-width, initial-scale=1'/>
+  <title><data:blog.pageTitle/></title>
+
+  <!-- Icons -->
+  <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css' rel='stylesheet'/>
+
+  <b:skin><![CDATA[
+  body { font-family: Arial; margin:0; background:#f5f7fb; }
+
+  .nav { display:flex; justify-content:space-between; padding:15px 30px; background:#fff; }
+  .nav a { margin-left:15px; cursor:pointer; }
+
+  .page { display:none; padding:40px; text-align:center; }
+  .active { display:block; }
+
+  .cards { display:flex; gap:20px; justify-content:center; margin-top:40px; flex-wrap:wrap; }
+  .card { padding:20px; border-radius:12px; width:250px; transition:0.3s; cursor:pointer; }
+  .card:hover { transform:scale(1.05); }
+
+  .easy { background:#dff5ec; }
+  .medium { background:#ffe8c8; }
+  .hard { background:#ffd6d6; }
+
+  button { padding:10px; background:#007bff; color:#fff; border:none; margin-top:10px; }
+
+  .box { background:#fff; padding:20px; border-radius:10px; margin:20px auto; width:70%; }
+  textarea { width:100%; height:100px; }
+
+  .popup {
+    display:none; position:fixed; top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background:#fff; padding:30px; border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.2);
+  }
+
+  table { margin:auto; border-collapse:collapse; }
+  td,th { border:1px solid #ccc; padding:10px; }
+
+  .calc input { width:200px; padding:10px; }
+  ]]></b:skin>
+</head>
+
+<body>
+
+<div class='nav'>
+  <b>⌨ Typing Master</b>
+  <div>
+    <a onclick="showPage('home')">Home</a>
+    <a onclick="showPage('leaderboard')">Leaderboard</a>
+    <a onclick="showPage('calc')">Calculator</a>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id='home' class='page active'>
+<h1>Master your typing skills</h1>
+
+<div class='cards'>
+  <div class='card easy' onclick="start('easy')">
+    <i class='fa-solid fa-bullseye'></i>
+    <h3>Easy</h3>
+  </div>
+
+  <div class='card medium' onclick="start('medium')">
+    <i class='fa-solid fa-bolt'></i>
+    <h3>Medium</h3>
+  </div>
+
+  <div class='card hard' onclick="start('hard')">
+    <i class='fa-solid fa-hourglass'></i>
+    <h3>Hard</h3>
+  </div>
+</div>
+</div>
+
+<!-- TEST -->
+<div id='test' class='page'>
+<h2 id='level'></h2>
+
+<div class='box'>
+<p id='text'></p>
+<textarea id='input' onfocus='startTimer()'></textarea>
+</div>
+
+<p>Time: <span id='time'>60</span>s | WPM: <span id='wpm'>0</span> | Accuracy: <span id='acc'>100</span>%</p>
+
+<button onclick='finish()'>Finish</button>
+</div>
+
+<!-- POPUP -->
+<div id='popup' class='popup'>
+<h2>Test Complete</h2>
+<p id='final'></p>
+<input id='name' placeholder='Enter name'/>
+<br/><br/>
+<button onclick='saveScore()'>Save Score</button>
+</div>
+
+<!-- LEADERBOARD -->
+<div id='leaderboard' class='page'>
+<h2>Leaderboard</h2>
+<table id='board'>
+<tr><th>Name</th><th>WPM</th></tr>
+</table>
+</div>
+
+<!-- CALCULATOR -->
+<div id='calc' class='page'>
+<h2>Calculator</h2>
+<div class='calc'>
+<input id='c1'/> + <input id='c2'/>
+<br/><br/>
+<button onclick='calc()'>Calculate</button>
+<p id='ans'></p>
+</div>
+</div>
+
+<script><![CDATA[
+
+let texts = {
+ easy:"The cat sits on the mat.",
+ medium:"Typing regularly improves your speed and accuracy.",
+ hard:"Advanced typing demands precision and speed."
+};
+
+let timer, time=60, startTime;
+
+function showPage(p){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ document.getElementById(p).classList.add('active');
+ if(p==='leaderboard') loadBoard();
+}
+
+function start(level){
+ showPage('test');
+ document.getElementById('level').innerText = level.toUpperCase();
+ document.getElementById('text').innerText = texts[level];
+}
+
+function startTimer(){
+ if(startTime) return;
+ startTime = Date.now();
+
+ timer = setInterval(()=>{
+  time--;
+  document.getElementById('time').innerText = time;
+  if(time<=0) finish();
+ },1000);
+}
+
+function finish(){
+ clearInterval(timer);
+
+ let typed = document.getElementById('input').value;
+ let words = typed.split(" ").length;
+ let wpm = Math.round(words);
+
+ document.getElementById('final').innerText = "WPM: "+wpm;
+ document.getElementById('popup').style.display="block";
+}
+
+function saveScore(){
+ let name = document.getElementById('name').value;
+ let score = document.getElementById('final').innerText.replace("WPM: ","");
+
+ let data = JSON.parse(localStorage.getItem('scores')||"[]");
+ data.push({name,score});
+ data.sort((a,b)=>b.score-a.score);
+
+ localStorage.setItem('scores',JSON.stringify(data));
+ location.reload();
+}
+
+function loadBoard(){
+ let data = JSON.parse(localStorage.getItem('scores')||"[]");
+ let table = document.getElementById('board');
+
+ table.innerHTML = "<tr><th>Name</th><th>WPM</th></tr>";
+
+ data.forEach(d=>{
+  table.innerHTML += `<tr><td>${d.name}</td><td>${d.score}</td></tr>`;
+ });
+}
+
+function calc(){
+ let a = +document.getElementById('c1').value;
+ let b = +document.getElementById('c2').value;
+ document.getElementById('ans').innerText = a+b;
+}
+
+]]></script>
+
+</body>
+</html>
